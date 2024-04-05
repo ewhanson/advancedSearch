@@ -1,0 +1,5 @@
+msgid "plugins.generic.advancedSearch.displayName"
+msgstr "Advanced Search Plugin"
+
+msgid "plugins.generic.advancedSearch.description"
+msgstr "Enables advanced search capabilities via 3rd party search indexes"
