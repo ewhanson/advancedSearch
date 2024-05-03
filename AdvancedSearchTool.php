@@ -4,48 +4,78 @@ require_once(dirname(__FILE__, 4) . '/tools/bootstrap.php');
 require_once(__DIR__ . '/vendor/autoload.php');
 
 
+use APP\core\Application;
+use APP\core\Services;
 use APP\facades\Repo;
 use APP\plugins\generic\advancedSearch\classes\SearchEngineDriver;
+use APP\plugins\generic\advancedSearch\classes\SubmissionData;
+use APP\submission\Submission;
 use PKP\cliTool\CommandLineTool;
+use PKP\config\Config;
+use PKP\context\Context;
+use PKP\core\Dispatcher;
 use PKP\core\PKPApplication;
+use PKP\plugins\Hook;
+use PKP\submission\PKPSubmission;
 
+/**
+ * Big List of TODOs
+ *
+ * - [ ] Work only with specific contexts
+ * - [ ] Batch submissions, possibly as jobs (though maybe less important when run from CLI)
+ */
 class AdvancedSearchTool extends CommandLineTool
 {
     public function execute(): void
     {
+        Hook::add('Request::getBaseUrl', function ($hookName, $args) {
+            $baseUrl =& $args[0];
+            $baseUrl = Config::getVar('general', 'base_url');
+            return Hook::ABORT;
+        });
 
-        $submissionData = Repo::submission()->getCollector()
-            // Assume single/primary context for the moment
-            ->filterByContextIds([1])
-            ->filterByStatus([\PKP\submission\PKPSubmission::STATUS_PUBLISHED])
+        try {
+            $submissionData = $this->getData();
+
+            $searchEngineDriver = new SearchEngineDriver();
+            $searchEngineDriver->addSubmissions($submissionData);
+
+            echo('🎉 Import complete! Processed ' . count($submissionData) . ' submission(s).');
+        } catch (\Exception $exception) {
+            echo('☹️ ' . $exception->getMessage());
+        }
+
+    }
+
+    private function getData(): array
+    {
+        $dispatcher = $this->getDispatcher();
+
+        // TODO: Get via another way
+        /** @var Context $context */
+        $context = Services::get('context')->get(1);
+
+        return Repo::submission()->getCollector()
+            // TODO: Assume single/primary context for the moment
+            ->filterByContextIds([$context->getId()])
+            ->filterByStatus([PKPSubmission::STATUS_PUBLISHED])
             ->getMany()
-            ->map(function (\APP\submission\Submission $submission) {
-                // Get submission data and put in format search index is expecting, e.g. associative array
-                $publication = $submission->getCurrentPublication();
-                $locale = $publication->getDefaultLocale();
-
-                $data = [];
-
-                $data['id'] = $submission->getId();
-                $data['title'] = $publication->getLocalizedTitle();
-                $data['abstract'] = $publication->getData('abstract', $locale);
-                // TODO: URL, Authors, full text?
-
-               return $data;
+            ->map(function (Submission $submission) use ($context, $dispatcher) {
+                return (new SubmissionData($submission, $context, $dispatcher))->get();
             })
             ->values()
             ->toArray();
+    }
+    private function getDispatcher(): Dispatcher
+    {
+        $request = PKPApplication::get()->getRequest();
 
-        $searchEngineDriver = new SearchEngineDriver();
-        $searchEngineDriver->addSubmissions($submissionData);
+        $dispatcher = $request->getDispatcher();
+        if ($dispatcher === null) {
+            $dispatcher = Application::get()->getDispatcher();
+        }
 
-
-        // TODO: Should array key be submission ID?
-
-
-        // For this naive implementation, assuming add any submission to an empty index
-
-        echo('Ta-da! 🎉');
+        return $dispatcher;
     }
 }
 
