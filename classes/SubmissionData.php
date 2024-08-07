@@ -65,13 +65,15 @@ class SubmissionData
      */
     private function getPublicationUrl(Submission $submission, Publication $publication): string
     {
+        $path = $publication->getData('urlPath') ?? $submission->getId();
+
         return $this->dispatcher->url(
             Application::get()->getRequest(),
             PKPApplication::ROUTE_PAGE,
             $this->context->getPath(),
             'article',
             'view',
-            $publication->getData('urlPath') ?? $submission->getId(),
+            [$path],
             null,
             null,
             true,
