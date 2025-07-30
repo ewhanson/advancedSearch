@@ -9,6 +9,7 @@ use APP\facades\Repo;
 use APP\publication\Publication;
 use APP\submission\Submission;
 use Illuminate\Support\LazyCollection;
+use PKP\affiliation\Affiliation;
 use PKP\config\Config;
 use PKP\context\Context;
 use PKP\core\Dispatcher;
@@ -50,7 +51,15 @@ class SubmissionData
         /** @var LazyCollection<Author> $authors */
         $authors = $publication->getData('authors');
         $authors->each(function (Author $author) use (&$data, $locale) {
-            $data['authors'][] = ['name' => $author->getFullName(), 'affiliation' => $author->getAffiliation($locale)];
+            $data['authors'][] = [
+                'name' => $author->getFullName(),
+                'affiliations' => array_values(
+                    array_map(
+                        fn (Affiliation $affiliation) => $affiliation->getLocalizedName(),
+                        $author->getAffiliations()
+                    )
+                )
+            ];
         });
         $data['doi'] = $publication->getDoi();
 

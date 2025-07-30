@@ -7,7 +7,9 @@ require_once(__DIR__ . '/vendor/autoload.php');
 use APP\core\Application;
 use APP\core\Services;
 use APP\facades\Repo;
-use APP\plugins\generic\advancedSearch\classes\SearchEngineDriver;
+use APP\plugins\generic\advancedSearch\classes\drivers\MeilisearchDriver;
+use APP\plugins\generic\advancedSearch\classes\drivers\OpenSearchDriver;
+use APP\plugins\generic\advancedSearch\classes\drivers\SearchEngineDriver;
 use APP\plugins\generic\advancedSearch\classes\SubmissionData;
 use APP\submission\Submission;
 use PKP\cliTool\CommandLineTool;
@@ -37,7 +39,8 @@ class AdvancedSearchTool extends CommandLineTool
         try {
             $submissionData = $this->getData();
 
-            $searchEngineDriver = new SearchEngineDriver();
+//            $searchEngineDriver = new MeilisearchDriver();
+            $searchEngineDriver = new OpenSearchDriver();
             $searchEngineDriver->addSubmissions($submissionData);
 
             echo('🎉 Import complete! Processed ' . count($submissionData) . ' submission(s).');

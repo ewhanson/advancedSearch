@@ -1,10 +1,11 @@
 <?php
 
-namespace APP\plugins\generic\advancedSearch\classes;
+namespace APP\plugins\generic\advancedSearch\classes\drivers;
 
+use APP\plugins\generic\advancedSearch\classes\drivers\SearchEngineDriver;
 use Meilisearch\Client;
 
-class SearchEngineDriver
+class MeilisearchDriver extends SearchEngineDriver
 {
     private Client $client;
     public function __construct()
